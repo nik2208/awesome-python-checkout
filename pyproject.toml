@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "awesome-python-checkout"
+version = "0.1.0"
+description = "FastAPI payment checkout library — Python port of awesome-node-checkout"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "nik2208" }]
+requires-python = ">=3.11"
+keywords = ["fastapi", "payment", "checkout", "paypal", "nexi", "satispay", "python"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.0.0",
+    "cryptography>=42.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/nik2208/awesome-python-checkout"
+Repository = "https://github.com/nik2208/awesome-python-checkout"
+"Bug Tracker" = "https://github.com/nik2208/awesome-python-checkout/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+    "respx>=0.21.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["awesome_python_checkout"]
