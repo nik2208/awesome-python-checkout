@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-09-29
+
+### Security
+
+- **Nexi redirect MAC is mandatory** ([#3](https://github.com/nik2208/awesome-python-checkout/issues/3)). `NexiProvider.handle_redirect` used to check the MAC only when the query carried a non-empty one, so `GET /nexi/redirect?codTrans=X&esito=OK` completed a payment without knowing `mac_key`.
+  - A missing or empty `mac` now returns `status="failed"` with `raw={"error": "MAC missing"}`.
+  - A wrong `mac` returns `raw={"error": "MAC verification failed"}`.
+  - The comparison uses `hmac.compare_digest` on bytes, so it runs in constant time and a non-ASCII `mac` does not raise.
+  - `CheckoutConfigurator.handle_redirect` emits `payment.failed` for these outcomes, never `payment.completed`.
+  - Compatibility: an `esito=OK` redirect without a valid MAC goes from `completed` to `failed`.
+
 ## [0.1.0] - 2026-05-06
 
 ### Added
