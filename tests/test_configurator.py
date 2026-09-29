@@ -175,6 +175,25 @@ async def test_handle_redirect_fires_completed_event():
     assert "completed" in events
 
 
+@pytest.mark.asyncio
+async def test_handle_redirect_nexi_missing_mac_fires_failed_event():
+    from awesome_python_checkout import NexiProvider
+    from awesome_python_checkout.providers import NexiConfig
+
+    checkout = CheckoutConfigurator()
+    checkout.register_provider(NexiProvider(NexiConfig(merchant_id="M", mac_key="k")))
+    completed: list[Any] = []
+    failed: list[Any] = []
+    checkout.on("payment.completed", completed.append)
+    checkout.on("payment.failed", failed.append)
+
+    result = await checkout.handle_redirect("nexi", {"codTrans": "ORD-1", "esito": "OK"})
+
+    assert result.status == "failed"
+    assert completed == []
+    assert failed == [{"provider": "nexi", "error": {"error": "MAC missing"}}]
+
+
 # ---------------------------------------------------------------------------
 # InMemoryTransactionStore
 # ---------------------------------------------------------------------------

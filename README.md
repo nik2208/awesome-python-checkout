@@ -110,6 +110,8 @@ app.include_router(checkout.router(), prefix="/checkout")
 | `mac_key` | `str` | required | Nexi MAC key for SHA-1 signature |
 | `environment` | `"sandbox" \| "live"` | `"sandbox"` | Target environment |
 
+The redirect outcome MAC is **required** and is compared in constant time (`hmac.compare_digest`). A redirect without `mac`, with an empty one or with a wrong one returns `status="failed"` (`raw={"error": "MAC missing"}` or `{"error": "MAC verification failed"}`) and emits `payment.failed`. It never returns `completed`, whatever `esito` says.
+
 ### SatispayConfig
 
 | Field | Type | Default | Description |

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import urllib.parse
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -174,7 +175,20 @@ class NexiProvider(BasePaymentProvider):
             }
         )
 
-        if received_mac and received_mac.lower() != expected_mac.lower():
+        # The outcome MAC is mandatory: without it anyone could forge
+        # ``esito=OK``.  Compare in constant time, as bytes: hmac.compare_digest
+        # raises TypeError on non-ASCII ``str``.  ``expected_mac`` is a
+        # hashlib hexdigest, already lowercase.
+        if not received_mac:
+            return PaymentResult(
+                payment_id=cod_trans,
+                status="failed",
+                provider=self.name,
+                raw={"error": "MAC missing"},
+            )
+        if not hmac.compare_digest(
+            received_mac.lower().encode("utf-8"), expected_mac.encode("utf-8")
+        ):
             return PaymentResult(
                 payment_id=cod_trans,
                 status="failed",

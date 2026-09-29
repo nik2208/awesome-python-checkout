@@ -193,10 +193,77 @@ async def test_nexi_handle_redirect_ok(nexi_provider: NexiProvider):
     assert result.payment_id == "ORD-001"
 
 
+def _nexi_signed_outcome(**overrides: str) -> dict[str, str]:
+    """Redirect outcome signed with the ``nexi_provider`` fixture's MAC key."""
+    import hashlib
+
+    fields = {
+        "codTrans": "ORD-001",
+        "esito": "OK",
+        "importo": "4999",
+        "divisa": "EUR",
+        "data": "20260101",
+        "orario": "120000",
+        "codAut": "AUTH123",
+    }
+    fields.update(overrides)
+    mac_string = (
+        f"codTrans={fields['codTrans']}"
+        f"esito={fields['esito']}"
+        f"importo={fields['importo']}"
+        f"divisa={fields['divisa']}"
+        f"data={fields['data']}"
+        f"orario={fields['orario']}"
+        f"codAut={fields['codAut']}"
+        "secret-mac-key"
+    )
+    fields["mac"] = hashlib.sha1(mac_string.encode()).hexdigest()
+    return fields
+
+
 @pytest.mark.asyncio
 async def test_nexi_handle_redirect_failed_esito(nexi_provider: NexiProvider):
-    result = await nexi_provider.handle_redirect({"esito": "KO", "codTrans": "ORD-002", "mac": ""})
+    # Valid MAC, so this exercises the esito path and not the MAC checks.
+    result = await nexi_provider.handle_redirect(
+        _nexi_signed_outcome(codTrans="ORD-002", esito="KO")
+    )
     assert result.status == "failed"
+    assert result.payment_id == "ORD-002"
+    assert result.raw.get("esito") == "KO"
+
+
+@pytest.mark.asyncio
+async def test_nexi_handle_redirect_missing_mac_rejected(nexi_provider: NexiProvider):
+    result = await nexi_provider.handle_redirect({"codTrans": "ORD-1", "esito": "OK"})
+    assert result.status == "failed"
+    assert result.payment_id == "ORD-1"
+    assert result.raw == {"error": "MAC missing"}
+
+
+@pytest.mark.asyncio
+async def test_nexi_handle_redirect_empty_mac_rejected(nexi_provider: NexiProvider):
+    result = await nexi_provider.handle_redirect({"codTrans": "ORD-1", "esito": "OK", "mac": ""})
+    assert result.status == "failed"
+    assert result.payment_id == "ORD-1"
+    assert result.raw == {"error": "MAC missing"}
+
+
+@pytest.mark.asyncio
+async def test_nexi_handle_redirect_non_ascii_mac_rejected(nexi_provider: NexiProvider):
+    outcome = _nexi_signed_outcome()
+    outcome["mac"] = "é" * 40
+    result = await nexi_provider.handle_redirect(outcome)
+    assert result.status == "failed"
+    assert result.raw == {"error": "MAC verification failed"}
+
+
+@pytest.mark.asyncio
+async def test_nexi_handle_redirect_uppercase_mac_accepted(nexi_provider: NexiProvider):
+    outcome = _nexi_signed_outcome()
+    outcome["mac"] = outcome["mac"].upper()
+    result = await nexi_provider.handle_redirect(outcome)
+    assert result.status == "completed"
+    assert result.payment_id == "ORD-001"
 
 
 @pytest.mark.asyncio
@@ -214,6 +281,7 @@ async def test_nexi_handle_redirect_bad_mac(nexi_provider: NexiProvider):
         }
     )
     assert result.status == "failed"
+    assert result.raw == {"error": "MAC verification failed"}
 
 
 @pytest.mark.asyncio

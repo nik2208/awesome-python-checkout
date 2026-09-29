@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "awesome-python-checkout"
-version = "0.1.0"
+version = "0.1.1"
 description = "FastAPI payment checkout library — Python port of awesome-node-checkout"
 readme = "README.md"
 license = { text = "MIT" }
